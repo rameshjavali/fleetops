@@ -1,0 +1,86 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: fleetops-db
+    environment:
+      POSTGRES_DB: fleetops
+      POSTGRES_USER: fleetops
+      POSTGRES_PASSWORD: secret
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fleetops -d fleetops"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: fleetops-api
+    environment:
+      PYTHONPATH: src
+      DATABASE_URL: postgresql+psycopg://fleetops:secret@db:5432/fleetops
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8001:8001"
+    command: >
+      sh -c "python -m alembic upgrade head &&
+      python -m uvicorn fleetops.services.api.main:app --host 0.0.0.0 --port 8001"
+
+  bff:
+    build:
+      context: .
+      dockerfile: Dockerfile.bff
+    container_name: fleetops-bff
+    environment:
+      PYTHONPATH: src
+      DATABASE_URL: postgresql+psycopg://fleetops:secret@db:5432/fleetops
+      API_BASE_URL: http://api:8001
+    depends_on:
+      api:
+        condition: service_started
+    ports:
+      - "8002:8002"
+    command: python -m uvicorn fleetops.services.bff.main:app --host 0.0.0.0 --port 8002
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: fleetops-worker
+    environment:
+      PYTHONPATH: src
+      DATABASE_URL: postgresql+psycopg://fleetops:secret@db:5432/fleetops
+    depends_on:
+      db:
+        condition: service_healthy
+    command: python -m fleetops.services.worker.main
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: fleetops-web
+    environment:
+      PYTHONPATH: src
+      DATABASE_URL: postgresql+psycopg://fleetops:secret@db:5432/fleetops
+      BFF_BASE_URL: http://bff:8002
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,web
+      DJANGO_SECRET_KEY: local-docker-secret-key
+    depends_on:
+      bff:
+        condition: service_started
+    ports:
+      - "8000:8000"
+    command: python src/fleetops/services/web/manage.py runserver 0.0.0.0:8000 --noreload
+
+volumes:
+  postgres_data:
