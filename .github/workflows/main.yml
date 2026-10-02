@@ -116,38 +116,25 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull and load the published image into Minikube
-        shell: powershell
+        shell: cmd
         env:
           IMAGE: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}
         run: |
-          $ErrorActionPreference = "Stop"
-          docker pull $env:IMAGE
-          if ($LASTEXITCODE -ne 0) { throw "Failed to pull $env:IMAGE" }
-          minikube image load $env:IMAGE
-          if ($LASTEXITCODE -ne 0) { throw "Failed to load $env:IMAGE into Minikube" }
+          docker pull "%IMAGE%" || exit /b 1
+          minikube image load "%IMAGE%" || exit /b 1
           minikube kubectl -- get nodes
-          if ($LASTEXITCODE -ne 0) { throw "Minikube is not available or its cluster is not running" }
+          if errorlevel 1 exit /b 1
 
       - name: Update the existing FleetOps deployments
-        shell: powershell
+        shell: cmd
         env:
           IMAGE: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}
         run: |
-          $ErrorActionPreference = "Stop"
-          $deployments = @("api", "bff", "web", "worker")
-          $image = $env:IMAGE
-          foreach ($deployment in $deployments) {
-            minikube kubectl -- set image "deployment/$deployment" "$deployment=$image" -n fleetops
-            if ($LASTEXITCODE -ne 0) { throw "Failed to update deployment/$deployment" }
-          }
-
-          foreach ($deployment in $deployments) {
-            minikube kubectl -- rollout status "deployment/$deployment" -n fleetops --timeout=180s
-            if ($LASTEXITCODE -ne 0) { throw "deployment/$deployment did not become ready" }
-          }
+          for %%D in (api bff web worker) do minikube kubectl -- set image deployment/%%D %%D=%IMAGE% -n fleetops || exit /b 1
+          for %%D in (api bff web worker) do minikube kubectl -- rollout status deployment/%%D -n fleetops --timeout=180s || exit /b 1
 
       - name: Verify deployed workloads
-        shell: powershell
+        shell: cmd
         run: |
           minikube kubectl -- get pods,services -n fleetops
-          if ($LASTEXITCODE -ne 0) { throw "Could not inspect FleetOps resources" }
+          if errorlevel 1 exit /b 1
