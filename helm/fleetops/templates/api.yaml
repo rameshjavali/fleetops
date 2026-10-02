@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "fleetops.fullname" . }}-api
+  labels:
+    {{- include "fleetops.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount.api }}
+  selector:
+    matchLabels:
+      {{- include "fleetops.selectorLabels" (dict "component" "api" "Chart" .Chart "Release" .Release "Values" .Values) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "fleetops.selectorLabels" (dict "component" "api" "Chart" .Chart "Release" .Release "Values" .Values) | nindent 8 }}
+    spec:
+      initContainers:
+        - name: wait-for-database
+          image: {{ .Values.database.image | quote }}
+          command:
+            - sh
+            - -c
+            - until pg_isready -h {{ include "fleetops.fullname" . }}-db -p 5432; do sleep 2; done
+      containers:
+        - name: api
+          image: {{ printf "%s:%s" .Values.image.repository .Values.image.tag | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: PYTHONPATH
+              value: /app/src
+            - name: DATABASE_URL
+              value: {{ include "fleetops.databaseUrl" . | quote }}
+          ports:
+            - name: http
+              containerPort: 8001
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            initialDelaySeconds: 25
+            periodSeconds: 20
+            failureThreshold: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "fleetops.fullname" . }}-api
+  labels:
+    {{- include "fleetops.labels" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "fleetops.selectorLabels" (dict "component" "api" "Chart" .Chart "Release" .Release "Values" .Values) | nindent 4 }}
+  ports:
+    - name: http
+      port: 8001
+      targetPort: http
+  type: {{ .Values.services.api.type }}

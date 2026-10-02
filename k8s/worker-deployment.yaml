@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: fleetops
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      initContainers:
+        - name: wait-for-database
+          image: postgres:16-alpine
+          command:
+            - sh
+            - -c
+            - until pg_isready -h db -p 5432; do sleep 2; done
+      containers:
+        - name: worker
+          image: fleetops-api:local
+          imagePullPolicy: IfNotPresent
+          command:
+            - python
+            - -m
+            - fleetops.services.worker.main
+          env:
+            - name: PYTHONPATH
+              value: /app/src
+            - name: DATABASE_URL
+              value: "postgresql+psycopg://fleetops:secret@db:5432/fleetops"

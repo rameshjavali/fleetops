@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "fleetops.fullname" . }}-bff
+  labels:
+    {{- include "fleetops.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount.bff }}
+  selector:
+    matchLabels:
+      {{- include "fleetops.selectorLabels" (dict "component" "bff" "Chart" .Chart "Release" .Release "Values" .Values) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "fleetops.selectorLabels" (dict "component" "bff" "Chart" .Chart "Release" .Release "Values" .Values) | nindent 8 }}
+    spec:
+      containers:
+        - name: bff
+          image: {{ printf "%s:%s" .Values.image.repository .Values.image.tag | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - python
+            - -m
+            - uvicorn
+            - fleetops.services.bff.main:app
+            - --host
+            - 0.0.0.0
+            - --port
+            - "8002"
+          env:
+            - name: PYTHONPATH
+              value: /app/src
+            - name: DATABASE_URL
+              value: {{ include "fleetops.databaseUrl" . | quote }}
+            - name: API_BASE_URL
+              value: http://{{ include "fleetops.fullname" . }}-api:8001
+          ports:
+            - name: http
+              containerPort: 8002
+          readinessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            failureThreshold: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "fleetops.fullname" . }}-bff
+  labels:
+    {{- include "fleetops.labels" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "fleetops.selectorLabels" (dict "component" "bff" "Chart" .Chart "Release" .Release "Values" .Values) | nindent 4 }}
+  ports:
+    - name: http
+      port: 8002
+      targetPort: http
+  type: {{ .Values.services.bff.type }}

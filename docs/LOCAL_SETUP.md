@@ -1,6 +1,6 @@
 # Run FleetOps locally on Windows
 
-This guide is written for someone opening the project for the first time. It starts the four app services directly in PowerShell—**no Docker, Kubernetes, or Postgres is needed yet**.
+This guide is for running the four app services directly in PowerShell with SQLite, without Docker. To run the complete stack in containers with PostgreSQL, use [DOCKER_SETUP.md](DOCKER_SETUP.md).
 
 ## What you will run
 
@@ -121,9 +121,9 @@ python src/fleetops/services/web/manage.py runserver 127.0.0.1:8000 --noreload
 
 Open the dashboard at <http://127.0.0.1:8000>.
 
-## 5. Add a sample vehicle
+## 5. Register a vehicle
 
-The dashboard displays vehicles already in the database. This form is not a vehicle-registration form, so create one through the API first. In a fifth terminal, or any terminal that is not running a service:
+Register a vehicle from the dashboard at <http://127.0.0.1:8000> using the **Register a vehicle** form. Or create one through the API in a fifth terminal, or any terminal that is not running a service:
 
 ```powershell
 $vehicle = Invoke-RestMethod `
@@ -225,6 +225,6 @@ All service terminals must set the exact same `DATABASE_URL` and start from the 
 
 Registration is unique. Choose another value, for example `DEMO-02`.
 
-## What is not needed yet
+## Other deployment options
 
-This current local setup does **not** require Docker, Docker Compose, Helm, Kubernetes, Postgres, GHCR, or GitHub Actions secrets. Those belong to later project phases. See [ARCHITECTURE.md](ARCHITECTURE.md) for how the services fit together and [../Plan.md](../Plan.md) for the planned phases.
+This local setup does not require Docker or PostgreSQL. For Docker Compose, see [DOCKER_SETUP.md](DOCKER_SETUP.md). Helm, Kubernetes, GHCR, and GitHub Actions remain future project phases. See [ARCHITECTURE.md](ARCHITECTURE.md) for how the services fit together and [../Plan.md](../Plan.md) for the planned phases.

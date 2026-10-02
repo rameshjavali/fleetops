@@ -14,6 +14,13 @@ class JobCreate(BaseModel):
     description: str = Field(min_length=1, max_length=500)
 
 
+class VehicleCreate(BaseModel):
+    registration: str = Field(min_length=1, max_length=32)
+    make: str = Field(min_length=1, max_length=80)
+    model: str = Field(min_length=1, max_length=80)
+    year: int
+
+
 def call_api(
     method: str,
     path: str,
@@ -39,6 +46,12 @@ def fleet_dashboard() -> dict[str, object]:
     vehicles = call_api("GET", "/vehicles")
     jobs = call_api("GET", "/jobs")
     return {"vehicles": vehicles.json(), "jobs": jobs.json()}
+
+
+@app.post("/vehicles", status_code=201)
+def create_vehicle(payload: VehicleCreate) -> dict[str, object]:
+    response = call_api("POST", "/vehicles", json_body=payload.model_dump())
+    return cast(dict[str, object], response.json())
 
 
 @app.get("/jobs")

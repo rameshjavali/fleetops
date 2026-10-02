@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: fleetops
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      initContainers:
+        - name: wait-for-database
+          image: postgres:16-alpine
+          command:
+            - sh
+            - -c
+            - until pg_isready -h db -p 5432; do sleep 2; done
+      containers:
+        - name: api
+          image: fleetops-api:local
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PYTHONPATH
+              value: /app/src
+            - name: DATABASE_URL
+              value: "postgresql+psycopg://fleetops:secret@db:5432/fleetops"
+          ports:
+            - containerPort: 8001
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8001
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8001
+            initialDelaySeconds: 25
+            periodSeconds: 20
+            failureThreshold: 5

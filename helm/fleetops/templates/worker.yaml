@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "fleetops.fullname" . }}-worker
+  labels:
+    {{- include "fleetops.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount.worker }}
+  selector:
+    matchLabels:
+      {{- include "fleetops.selectorLabels" (dict "component" "worker" "Chart" .Chart "Release" .Release "Values" .Values) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "fleetops.selectorLabels" (dict "component" "worker" "Chart" .Chart "Release" .Release "Values" .Values) | nindent 8 }}
+    spec:
+      initContainers:
+        - name: wait-for-database
+          image: {{ .Values.database.image | quote }}
+          command:
+            - sh
+            - -c
+            - until pg_isready -h {{ include "fleetops.fullname" . }}-db -p 5432; do sleep 2; done
+      containers:
+        - name: worker
+          image: {{ printf "%s:%s" .Values.image.repository .Values.image.tag | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - python
+            - -m
+            - fleetops.services.worker.main
+          env:
+            - name: PYTHONPATH
+              value: /app/src
+            - name: DATABASE_URL
+              value: {{ include "fleetops.databaseUrl" . | quote }}

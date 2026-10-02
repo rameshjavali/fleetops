@@ -1,8 +1,8 @@
 # FleetOps
 
-FleetOps is a small fleet-management demo and learning project. It lets you view vehicles, choose a maintenance task (or enter a custom one), and watch a background worker process it. It is also being built to demonstrate a multi-service Python application and, in later phases, Docker, Kubernetes/Helm, and GitHub Actions CI/CD.
+FleetOps is a small fleet-management demo and learning project. It lets you register vehicles, schedule maintenance, and watch a background worker process jobs. It demonstrates a multi-service Python application with both local development and Docker Compose setups.
 
-> **Current stage:** The four services run locally with SQLite. Docker/Compose, PostgreSQL, Helm, and GitHub Actions are planned phases and are not required to try the app today.
+> **Current stage:** Run locally with SQLite, Docker Compose and PostgreSQL, or deploy the demo to Minikube with the Helm chart. GitHub Actions runs checks and publishes the app image to GHCR; automatic Minikube deployment uses a self-hosted runner.
 
 ## What runs
 
@@ -13,11 +13,19 @@ FleetOps is a small fleet-management demo and learning project. It lets you view
 | BFF (FastAPI) | UI-facing layer; gathers dashboard data and forwards job requests to the API | <http://127.0.0.1:8002> |
 | Worker (Python) | Polls queued jobs and records completed or failed status | Background process; no browser port |
 
-The app uses a local SQLite file by default. A job is stored in the database with status `queued`; the Worker polls for it, processes it, and changes its status. The Web dashboard reads the updated result through the BFF and API.
+Local development uses a SQLite file. Docker Compose runs PostgreSQL and all four services. A job is stored with status `queued`; the Worker processes it and updates its status, which the dashboard refreshes automatically.
 
-## Run it on Windows
+## Run with Docker
 
-Follow the full step-by-step guide in [docs/LOCAL_SETUP.md](docs/LOCAL_SETUP.md). It covers Python setup, starting each service in its own VS Code terminal, creating sample data, checking that a job completes, and troubleshooting.
+Follow [docs/DOCKER_SETUP.md](docs/DOCKER_SETUP.md) for Docker Desktop setup, commands, app URLs, PostgreSQL/DBeaver connection details, and troubleshooting.
+
+## Run with Minikube
+
+Follow [docs/MINIKUBE_SETUP.md](docs/MINIKUBE_SETUP.md) for prerequisites and the one-command Windows PowerShell deployment.
+
+## Run locally on Windows
+
+Follow [docs/LOCAL_SETUP.md](docs/LOCAL_SETUP.md) to run the services directly with Python and SQLite, without Docker.
 
 ## Project map
 
@@ -28,6 +36,11 @@ Follow the full step-by-step guide in [docs/LOCAL_SETUP.md](docs/LOCAL_SETUP.md)
 - `migrations/` — Alembic database migration history.
 - `tests/` — automated tests for the rules, services, and worker flow.
 - `docs/ARCHITECTURE.md` — beginner-friendly explanation of the request and job flow.
+- `docs/DOCKER_SETUP.md` — Docker Compose startup, database connection, and troubleshooting.
+- `docs/MINIKUBE_SETUP.md` — Minikube deployment instructions.
+- `docs/HELM_CHART.md` — Helm chart resources, configuration, and commands.
+- `docs/GITHUB_ACTIONS.md` — CI checks, GHCR image publishing, and automatic Minikube deployment.
+- `docs/SELF_HOSTED_RUNNER.md` — configure automatic GitHub Actions deployment to local Minikube.
 - `docs/LOCAL_SETUP.md` — local installation and run instructions.
 - `Plan.md` — phased project delivery plan.
 
@@ -50,4 +63,4 @@ python -m pip install pytest pytest-cov pytest-django ruff mypy coverage
 
 ## Current limitations
 
-This is a learning/demo app, not a production fleet platform. The current local run uses SQLite and a simple database-polling worker. Authentication, authorization, production secrets, and cloud-specific infrastructure are not included. PostgreSQL, containerized local development, Helm deployments, and CI/CD are future plan phases.
+This is a learning/demo app, not a production fleet platform. It uses a simple database-polling worker. Authentication, authorization, production secrets, and cloud-specific infrastructure are not included. The self-hosted runner and local Minikube deployment are intended for development and learning, not production infrastructure.

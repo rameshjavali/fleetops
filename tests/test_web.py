@@ -25,6 +25,25 @@ def test_job_status_endpoint_returns_jobs(mock_get: Mock) -> None:
 
 
 @patch("fleetops.services.web.views.httpx.post")
+def test_register_vehicle_forwards_vehicle_details(mock_post: Mock) -> None:
+    response_from_bff = Mock()
+    mock_post.return_value = response_from_bff
+
+    response = Client().post(
+        "/vehicles",
+        {"registration": "TRUCK-01", "make": "Volvo", "model": "FH", "year": "2023"},
+    )
+
+    assert response.status_code == 302
+    assert mock_post.call_args.kwargs["json"] == {
+        "registration": "TRUCK-01",
+        "make": "Volvo",
+        "model": "FH",
+        "year": "2023",
+    }
+
+
+@patch("fleetops.services.web.views.httpx.post")
 def test_submit_job_forwards_selected_maintenance_type(mock_post: Mock) -> None:
     response_from_bff = Mock()
     mock_post.return_value = response_from_bff

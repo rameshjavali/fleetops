@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: fleetops
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: web
+          image: fleetops-api:local
+          imagePullPolicy: IfNotPresent
+          command:
+            - python
+            - src/fleetops/services/web/manage.py
+            - runserver
+            - 0.0.0.0:8000
+            - --noreload
+          env:
+            - name: PYTHONPATH
+              value: /app/src
+            - name: DATABASE_URL
+              value: "postgresql+psycopg://fleetops:secret@db:5432/fleetops"
+            - name: BFF_BASE_URL
+              value: http://bff:8002
+            - name: DJANGO_ALLOWED_HOSTS
+              value: localhost,127.0.0.1,web
+            - name: DJANGO_SECRET_KEY
+              value: local-k8s-secret-key
+          ports:
+            - containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: /health/live
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8000
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            failureThreshold: 5

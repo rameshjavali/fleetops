@@ -29,6 +29,18 @@
     <section><h2>Vehicles</h2>
       {% if vehicles %}<ul>{% for vehicle in vehicles %}<li><strong>{{ vehicle.registration }}</strong> — {{ vehicle.year }} {{ vehicle.make }} {{ vehicle.model }}</li>{% endfor %}</ul>
       {% else %}<p>No vehicles are registered yet.</p>{% endif %}
+      <h3>Register a vehicle</h3>
+      <form method="post" action="{% url 'register_vehicle' %}">{% csrf_token %}
+        <label for="registration">Registration</label>
+        <input id="registration" name="registration" maxlength="32" required>
+        <label for="make">Make</label>
+        <input id="make" name="make" maxlength="80" required>
+        <label for="model">Model</label>
+        <input id="model" name="model" maxlength="80" required>
+        <label for="year">Year</label>
+        <input id="year" name="year" type="number" min="1900" max="2100" required>
+        <button type="submit">Register vehicle</button>
+      </form>
     </section>
     <section><h2>Schedule maintenance</h2>
       <form method="post" action="{% url 'submit_job' %}">{% csrf_token %}

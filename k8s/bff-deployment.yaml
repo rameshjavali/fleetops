@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bff
+  namespace: fleetops
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bff
+  template:
+    metadata:
+      labels:
+        app: bff
+    spec:
+      containers:
+        - name: bff
+          image: fleetops-api:local
+          imagePullPolicy: IfNotPresent
+          command:
+            - python
+            - -m
+            - uvicorn
+            - fleetops.services.bff.main:app
+            - --host
+            - 0.0.0.0
+            - --port
+            - "8002"
+          env:
+            - name: PYTHONPATH
+              value: /app/src
+            - name: DATABASE_URL
+              value: "postgresql+psycopg://fleetops:secret@db:5432/fleetops"
+            - name: API_BASE_URL
+              value: http://api:8001
+          ports:
+            - containerPort: 8002
+          readinessProbe:
+            httpGet:
+              path: /health/live
+              port: 8002
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8002
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            failureThreshold: 5

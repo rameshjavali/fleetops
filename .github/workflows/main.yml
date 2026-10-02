@@ -1,1 +1,153 @@
 
+name: CI and publish image
+
+on:
+  push:
+    branches:
+      - "**"
+    tags:
+      - "v*"
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Tests and chart validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install project and development tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          python -m pip install pytest pytest-cov pytest-django ruff mypy
+
+      - name: Run tests
+        run: python -m pytest -q
+
+      - name: Run Ruff
+        run: python -m ruff check src tests migrations
+
+      - name: Run mypy
+        run: python -m mypy src/fleetops
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.16.4
+
+      - name: Lint Helm chart
+        run: helm lint ./helm/fleetops
+
+      - name: Render Helm chart
+        run: helm template fleetops ./helm/fleetops --namespace fleetops --debug > "$RUNNER_TEMP/fleetops-rendered.yaml"
+
+  publish-image:
+    name: Build and publish image
+    needs: checks
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Prepare image name and tags
+        id: metadata
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=sha,format=long,prefix=sha-
+            type=ref,event=branch
+            type=ref,event=tag
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.api
+          push: true
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy-minikube:
+    name: Deploy to local Minikube
+    needs: publish-image
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, windows, fleetops-minikube]
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull and load the published image into Minikube
+        shell: pwsh
+        env:
+          IMAGE: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          docker pull $env:IMAGE
+          if ($LASTEXITCODE -ne 0) { throw "Failed to pull $env:IMAGE" }
+          minikube image load $env:IMAGE
+          if ($LASTEXITCODE -ne 0) { throw "Failed to load $env:IMAGE into Minikube" }
+          minikube kubectl -- get nodes
+          if ($LASTEXITCODE -ne 0) { throw "Minikube is not available or its cluster is not running" }
+
+      - name: Update the existing FleetOps deployments
+        shell: pwsh
+        env:
+          IMAGE: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $deployments = @("api", "bff", "web", "worker")
+          $image = $env:IMAGE
+          foreach ($deployment in $deployments) {
+            minikube kubectl -- set image "deployment/$deployment" "$deployment=$image" -n fleetops
+            if ($LASTEXITCODE -ne 0) { throw "Failed to update deployment/$deployment" }
+          }
+
+          foreach ($deployment in $deployments) {
+            minikube kubectl -- rollout status "deployment/$deployment" -n fleetops --timeout=180s
+            if ($LASTEXITCODE -ne 0) { throw "deployment/$deployment did not become ready" }
+          }
+
+      - name: Verify deployed workloads
+        shell: pwsh
+        run: |
+          minikube kubectl -- get pods,services -n fleetops
+          if ($LASTEXITCODE -ne 0) { throw "Could not inspect FleetOps resources" }

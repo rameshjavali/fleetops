@@ -1,0 +1,30 @@
+replicaCount:
+  api: 1
+  bff: 1
+  web: 1
+  worker: 1
+
+image:
+  repository: fleetops-api
+  tag: local
+  pullPolicy: IfNotPresent
+
+database:
+  image: postgres:16-alpine
+  name: fleetops
+  user: fleetops
+  password: secret
+  storage: 2Gi
+  accessMode: ReadWriteOnce
+
+django:
+  secretKey: local-k8s-secret-key
+  allowedHosts: localhost,127.0.0.1,web
+
+services:
+  web:
+    type: NodePort
+  api:
+    type: ClusterIP
+  bff:
+    type: ClusterIP
