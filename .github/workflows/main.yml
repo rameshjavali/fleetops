@@ -116,7 +116,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull and load the published image into Minikube
-        shell: pwsh
+        shell: powershell
         env:
           IMAGE: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}
         run: |
@@ -129,7 +129,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Minikube is not available or its cluster is not running" }
 
       - name: Update the existing FleetOps deployments
-        shell: pwsh
+        shell: powershell
         env:
           IMAGE: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}
         run: |
@@ -147,7 +147,7 @@ jobs:
           }
 
       - name: Verify deployed workloads
-        shell: pwsh
+        shell: powershell
         run: |
           minikube kubectl -- get pods,services -n fleetops
           if ($LASTEXITCODE -ne 0) { throw "Could not inspect FleetOps resources" }
