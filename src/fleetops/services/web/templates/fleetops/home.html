@@ -8,7 +8,9 @@
     :root { color-scheme: light; font-family: system-ui, sans-serif; color: #183046; background: #f2f6f8; }
     body { max-width: 960px; margin: 3rem auto; padding: 0 1rem; }
     header, section { background: white; border: 1px solid #dce6eb; border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
     h1 { margin: 0 0 .25rem; color: #075985; } h2 { margin-top: 0; }
+    .live-badge { flex: 0 0 auto; padding: .4rem .75rem; border-radius: 999px; background: #dcfce7; color: #166534; font-size: .85rem; font-weight: 700; }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; }
     label { display: block; margin: .75rem 0 .25rem; } input, select, button { box-sizing: border-box; width: 100%; padding: .7rem; border: 1px solid #b8c9d2; border-radius: 8px; }
     button { margin-top: 1rem; background: #087e8b; border: 0; color: white; font-weight: 700; cursor: pointer; }
@@ -23,7 +25,10 @@
   </style>
 </head>
 <body>
-  <header><h1>FleetOps</h1><p>Fleet and maintenance overview</p></header>
+  <header>
+    <div><h1>FleetOps</h1><p>Fleet and maintenance overview</p></div>
+    <span class="live-badge">Live overview</span>
+  </header>
   {% if not api_available %}<p class="notice" role="status">Fleet services are temporarily unavailable.</p>{% endif %}
   <div class="grid">
     <section><h2>Vehicles</h2>

@@ -10,6 +10,18 @@ def test_web_health_endpoint() -> None:
 
 
 @patch("fleetops.services.web.views.httpx.get")
+def test_home_shows_live_overview_badge(mock_get: Mock) -> None:
+    upstream = Mock()
+    upstream.json.return_value = {"vehicles": [], "jobs": []}
+    mock_get.return_value = upstream
+
+    response = Client().get("/")
+
+    assert response.status_code == 200
+    assert b"Live overview" in response.content
+
+
+@patch("fleetops.services.web.views.httpx.get")
 def test_job_status_endpoint_returns_jobs(mock_get: Mock) -> None:
     upstream = Mock()
     upstream.json.return_value = [

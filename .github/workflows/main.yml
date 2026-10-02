@@ -115,6 +115,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Verify Docker and Minikube are ready on the runner
+        shell: cmd
+        run: |
+          docker version || exit /b 1
+          minikube version || exit /b 1
+          minikube status || exit /b 1
+
       - name: Pull and load the published image into Minikube
         shell: cmd
         env:

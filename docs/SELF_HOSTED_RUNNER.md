@@ -44,6 +44,18 @@ On each push to `main`, GitHub Actions first runs tests, Ruff, mypy, and Helm
 validation on a GitHub-hosted runner. If they pass, it builds and publishes
 the image to GHCR. The self-hosted deployment job then:
 
+Before any deployment work, the workflow verifies that Docker Desktop and
+Minikube are available on the runner. If the runner cannot connect to the Docker
+Daemon, it fails with an error similar to:
+
+```text
+failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine
+```
+
+This is usually caused by Docker Desktop not being running on the Windows
+machine, or by the GitHub runner being started under a different Windows user
+than the one that owns the Docker Desktop and Minikube session.
+
 1. Logs in to GHCR with the workflow's short-lived `GITHUB_TOKEN`.
 2. Pulls the image tagged with the full commit SHA and loads it into Minikube.
 3. Updates the existing `api`, `bff`, `web`, and `worker` Deployments to use
