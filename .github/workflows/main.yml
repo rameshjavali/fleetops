@@ -68,7 +68,6 @@ jobs:
   sonarqube:
     name: SonarQube analysis
     needs: checks
-    if: ${{ secrets.SONAR_TOKEN != '' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -96,6 +95,7 @@ jobs:
         run: python -m pytest --cov=fleetops --cov-report=xml --cov-report=term-missing -q
 
       - name: SonarQube Scan
+        if: ${{ secrets.SONAR_TOKEN != '' }}
         uses: SonarSource/sonarcloud-github-action@v2.3.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
