@@ -40,6 +40,7 @@ Follow [docs/LOCAL_SETUP.md](docs/LOCAL_SETUP.md) to run the services directly w
 - `docs/MINIKUBE_SETUP.md` — Minikube deployment instructions.
 - `docs/HELM_CHART.md` — Helm chart resources, configuration, and commands.
 - `docs/GITHUB_ACTIONS.md` — CI checks, GHCR image publishing, and automatic Minikube deployment.
+- `docs/SONARQUBE_SETUP.md` — SonarQube and SonarCloud setup instructions for CI.
 - `docs/SELF_HOSTED_RUNNER.md` — configure automatic GitHub Actions deployment to local Minikube.
 - `docs/LOCAL_SETUP.md` — local installation and run instructions.
 - `Plan.md` — phased project delivery plan.
@@ -49,9 +50,10 @@ Follow [docs/LOCAL_SETUP.md](docs/LOCAL_SETUP.md) to run the services directly w
 After installing the development tools, run these from the repository root:
 
 ```powershell
-python -m pytest -q
+python -m pytest --cov=fleetops --cov-report=xml --cov-report=term-missing -q
 python -m ruff check src tests migrations
 python -m mypy src/fleetops
+trivy fs --scanners vuln,secret --severity HIGH,CRITICAL --exit-code 1 .
 ```
 
 For local development, install the runtime application first, then the test and quality tools:
@@ -60,6 +62,14 @@ For local development, install the runtime application first, then the test and 
 python -m pip install -e .
 python -m pip install pytest pytest-cov pytest-django ruff mypy coverage
 ```
+
+<!-- trigger workflow -->
+
+### SonarQube and Trivy in CI
+
+The GitHub Actions workflow runs the repository checks and then scans the codebase and container image. To enable SonarQube analysis, add a `SONAR_TOKEN` secret and set the repository variables `SONAR_PROJECT_KEY` and `SONAR_HOST_URL` (for SonarCloud, `SONAR_HOST_URL` is usually `https://sonarcloud.io`). Trivy runs automatically on the filesystem and on the built image when the workflow publishes an image.
+
+Follow [docs/SONARQUBE_SETUP.md](docs/SONARQUBE_SETUP.md) for step-by-step setup and troubleshooting.
 
 ## Current limitations
 

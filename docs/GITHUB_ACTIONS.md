@@ -12,8 +12,10 @@ Without that runner online, the deployment job waits for a matching runner.
 For every push and pull request, GitHub Actions:
 
 1. Installs the project and its test/quality tools using Python 3.12.
-2. Runs the tests, Ruff, and mypy.
+2. Runs the tests with coverage, Ruff, and mypy.
 3. Lints and renders the Helm chart.
+4. Builds the Docker image and runs a Trivy filesystem vulnerability scan.
+5. Runs SonarQube when a `SONAR_TOKEN` secret is configured.
 
 If those checks pass for a push to `main` or a version tag beginning with `v`
 (for example, `v1.0.0`), a second job builds the image from `Dockerfile.api`
@@ -21,6 +23,11 @@ and pushes it to GHCR. A push to `main` then triggers deployment to Minikube
 through the self-hosted runner. Version tags publish an image but do not
 deploy it. The workflow uses GitHub's `GITHUB_TOKEN`; no registry password
 needs to be added as a repository secret.
+
+To enable SonarQube, add a repository secret named `SONAR_TOKEN`. If you are
+using SonarCloud, also set `SONAR_PROJECT_KEY` and `SONAR_HOST_URL` as repository
+variables. The workflow will skip the SonarQube job automatically when the token
+is not configured.
 
 The automatic deployment updates the existing Kubernetes Deployments named
 `api`, `bff`, `web`, and `worker` in the `fleetops` namespace. It does not
