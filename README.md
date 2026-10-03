@@ -64,6 +64,7 @@ python -m pip install pytest pytest-cov pytest-django ruff mypy coverage
 ```
 
 <!-- trigger workflow -->
+<!-- sonar configuration updated -->
 
 ### SonarQube and Trivy in CI
 
