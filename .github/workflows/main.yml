@@ -98,21 +98,18 @@ jobs:
 
       - name: SonarQube Scan
         if: ${{ env.SONAR_TOKEN != '' }}
+        uses: SonarSource/sonarqube-scan-action@v6.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL || 'https://sonarcloud.io' }}
-        run: |
-          echo "Running SonarQube analysis"
-          python -m pip install sonar-scanner
-          sonar-scanner \
-            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY || 'fleetops' }} \
-            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION || 'rameshjavali' }} \
-            -Dsonar.sources=src \
-            -Dsonar.tests=tests \
-            -Dsonar.python.version=3.12 \
-            -Dsonar.python.coverage.reportPaths=coverage.xml \
-            -Dsonar.host.url=${{ vars.SONAR_HOST_URL || 'https://sonarcloud.io' }} \
-            -Dsonar.token="$SONAR_TOKEN"
+        with:
+          args: >
+            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY || 'fleetops' }}
+            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION || 'rameshjavali' }}
+            -Dsonar.sources=src
+            -Dsonar.tests=tests
+            -Dsonar.python.version=3.12
+            -Dsonar.python.coverage.reportPaths=coverage.xml
 
   publish-image:
     name: Build and publish image
