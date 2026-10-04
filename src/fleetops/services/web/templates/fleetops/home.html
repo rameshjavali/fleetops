@@ -5,15 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>FleetOps | Fleet dashboard</title>
   <style>
-    :root { color-scheme: light; font-family: system-ui, sans-serif; color: #183046; background: #f2f6f8; }
-    body { max-width: 960px; margin: 3rem auto; padding: 0 1rem; }
+    :root { color-scheme: light; font-family: system-ui, sans-serif; color: #183046; background: #eef4f7; }
+    body { max-width: 1040px; margin: 3rem auto; padding: 0 1rem; }
     header, section { background: white; border: 1px solid #dce6eb; border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
-    header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-    h1 { margin: 0 0 .25rem; color: #075985; } h2 { margin-top: 0; }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; color: white; background: linear-gradient(120deg, #083344, #0e7490); border: 0; box-shadow: 0 12px 28px #0e74902b; }
+    header p { margin-bottom: 0; color: #cffafe; }
+    h1 { margin: 0 0 .25rem; color: white; } h2 { margin-top: 0; }
     .live-badge { flex: 0 0 auto; padding: .4rem .75rem; border-radius: 999px; background: #dcfce7; color: #166534; font-size: .85rem; font-weight: 700; }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; }
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+    .summary-card { display: flex; align-items: center; gap: 1rem; padding: 1.15rem 1.35rem; background: white; border: 1px solid #dce6eb; border-radius: 14px; }
+    .summary-value { color: #0e7490; font-size: 1.8rem; font-weight: 800; line-height: 1; }
+    .summary-label { color: #64748b; font-size: .9rem; }
     label { display: block; margin: .75rem 0 .25rem; } input, select, button { box-sizing: border-box; width: 100%; padding: .7rem; border: 1px solid #b8c9d2; border-radius: 8px; }
-    button { margin-top: 1rem; background: #087e8b; border: 0; color: white; font-weight: 700; cursor: pointer; }
+    button { margin-top: 1rem; background: #087e8b; border: 0; color: white; font-weight: 700; cursor: pointer; transition: background .15s ease, transform .15s ease; }
+    button:hover { background: #075985; transform: translateY(-1px); }
     li { margin: .6rem 0; } .notice { color: #9a3412; }
     .status-legend { display: flex; flex-wrap: wrap; gap: .5rem; padding: 0; list-style: none; }
     .status { display: inline-block; padding: .2rem .55rem; border-radius: 999px; font-size: .85rem; font-weight: 700; background: #e2e8f0; }
@@ -30,6 +36,10 @@
     <span class="live-badge">Live overview</span>
   </header>
   {% if not api_available %}<p class="notice" role="status">Fleet services are temporarily unavailable.</p>{% endif %}
+  <div class="summary-grid" aria-label="Fleet summary">
+    <section class="summary-card"><span class="summary-value">{{ vehicles|length }}</span><span class="summary-label">Registered vehicles</span></section>
+    <section class="summary-card"><span class="summary-value">{{ jobs|length }}</span><span class="summary-label">Maintenance jobs</span></section>
+  </div>
   <div class="grid">
     <section><h2>Vehicles</h2>
       {% if vehicles %}<ul>{% for vehicle in vehicles %}<li><strong>{{ vehicle.registration }}</strong> — {{ vehicle.year }} {{ vehicle.make }} {{ vehicle.model }}</li>{% endfor %}</ul>
